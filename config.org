@@ -1,0 +1,556 @@
+#+Title: Emacs Config
+#+Author: 22ispencer
+#+Description: My attempt at emacs
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+#+Startup: showeverything
+
+* Table of Contents :toc_4_gh:
+- [[#important-to-load-first][Important to load first]]
+  - [[#startup-performance][Startup Performance]]
+  - [[#auto-tangle-configuration-file][Auto-tangle Configuration file]]
+  - [[#use-package][Use Package]]
+  - [[#evil-mode][Evil Mode]]
+    - [[#evil-surround][Evil Surround]]
+    - [[#evil-commentary][Evil Commentary]]
+    - [[#evil-snipe][Evil Snipe]]
+  - [[#general-keybindings][General Keybindings]]
+    - [[#which-key][Which Key]]
+  - [[#good-defaults][Good Defaults]]
+- [[#appearance][Appearance]]
+  - [[#set-theme][Set Theme]]
+  - [[#fonts][Fonts]]
+    - [[#setting-fonts][Setting fonts]]
+- [[#development][Development]]
+  - [[#projectile][Projectile]]
+  - [[#eglot][Eglot]]
+  - [[#yasnippet][Yasnippet]]
+  - [[#format-on-save][Format on Save]]
+  - [[#language-modes][Language Modes]]
+    - [[#org-mode][Org mode]]
+      - [[#table-of-contents][Table of Contents]]
+      - [[#org-superstar][Org Superstar]]
+      - [[#tag-expansion][Tag Expansion]]
+      - [[#org-roam][Org Roam]]
+- [[#other][Other]]
+  - [[#incremental-completion-helm][Incremental completion (Helm)]]
+  - [[#magit][Magit]]
+  - [[#color-highlighting][Color Highlighting]]
+
+* Important to load first
+** Startup Performance
+Make startup faster by reducing the frequency of garbage collection
+. This will be set back when startup finishes.
+#+begin_src emacs-lisp
+    ;; The default is 800 kilobytes. Measured in bytes.
+    (setq gc-cons-threshold (* 50 1000 1000))
+#+end_src
+
+** Auto-tangle Configuration file
+Auto-Tangle Org configuration file for better startup times.
+If you want to use this don't forget to add this to the top of the org
+document
+(#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes)
+
+*Remember*, if this code can't be loaded (errors before this code)
+, the init.el file won't update on change!
+To fix this, you need to find this file (C-x C-f), fix the error and
+press C-c C-v t to tangle it manually.
+
+This snippet adds a hook to org-mode buffers so that
+start/org-babel-tangle-config gets executed each time such a buffer
+gets saved.
+This function checks to see if the file being saved is the Emacs.org
+file youre looking at right now, and if so,
+automatically exports the configuration here to the associated output
+files.
+#+begin_src emacs-lisp
+    (defun start/org-babel-tangle-config ()
+      "Automatically tangle our Emacs.org config file when we save it. Credit to Emacs From Scratch for this one!"
+      (when (string-equal (file-name-directory (buffer-file-name))
+                          (expand-file-name user-emacs-directory))
+        ;; Dynamic scoping to the rescue
+        (let ((org-confirm-babel-evaluate nil))
+          (org-babel-tangle))))
+
+    (add-hook 'org-mode-hook
+              (lambda ()
+                (add-hook 'after-save-hook
+                          #'start/org-babel-tangle-config)))
+#+end_src
+
+** Use Package
+Setup straight.el as package manager
+#+begin_src emacs-lisp
+       ; Install straight.el
+     (defvar bootstrap-version)
+     (let ((bootstrap-file
+            (expand-file-name
+             "straight/repos/straight.el/bootstrap.el"
+             (or (bound-and-true-p straight-base-dir)
+                 user-emacs-directory)))
+           (bootstrap-version 7))
+       (unless (file-exists-p bootstrap-file)
+         (with-current-buffer
+             (url-retrieve-synchronously
+              "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+              'silent 'inhibit-cookies)
+           (goto-char (point-max))
+           (eval-print-last-sexp)))
+       (load bootstrap-file nil 'nomessage))
+
+     ; Setup use-package
+     (setq straight-use-package-by-default t)
+     (straight-use-package 'use-package)
+#+end_src
+
+** Evil Mode
+An extensible vi/vim layer for Emacs. Becauselet's face it. The
+Vim keybindings are just plain better.
+Notes:
+- You can toggle evil mode with C-z.
+- To paste without copy (yank) select the text and use P (shift-p).
+
+If you don't want to use evil-mode don't forget to remove:
+- Messages buffer fix in Good default section (:ghook)
+- And also change general.el keybindings and setup
+(general-evil-setup, :states, etc.)
+#+begin_src emacs-lisp
+    (use-package evil
+      :init
+      ;; Execute code Before a package is loaded
+      (evil-mode)
+      :config ;; Execute code After a package is loaded
+      (evil-set-initial-state 'eat-mode 'insert) ;; Set initial state in eat terminal to insert mode
+      :custom ;; Customization of package custom variables
+      (evil-want-keybinding nil)    ;; Disable evil bindings in other modes (It's not consistent and not good)
+      (evil-want-C-u-scroll t)      ;; Set C-u to scroll up
+      (evil-want-C-i-jump nil)      ;; Disables C-i jump
+      (evil-undo-system 'undo-redo) ;; C-r to redo
+      (org-return-follows-link t)   ;; Sets RETURN key in org-mode to follow links
+      ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
+      :bind (:map evil-motion-state-map
+                  ("SPC" . nil)
+                  ("RET" . nil)
+                  ("TAB" . nil)))
+    (use-package evil-collection
+      :after
+      evil
+      :config
+      ;; Setting where to use evil-collection
+      (setq evil-collection-mode-list
+            '(dired ibuffer magit corfu vertico consult))
+      (evil-collection-init))
+#+end_src
+
+*** Evil Surround
+#+begin_src emacs-lisp
+  (use-package evil-surround
+    :config
+    (global-evil-surround-mode 1))
+#+end_src
+
+*** Evil Commentary
+#+begin_src emacs-lisp
+  (use-package evil-commentary
+    :config
+    (evil-commentary-mode))
+#+end_src
+
+*** Evil Snipe
+#+begin_src emacs-lisp
+  (use-package evil-snipe
+    :config 
+    (evil-snipe-mode 1)
+    (evil-snipe-override-mode 1)
+    (setq evil-snipe-spillover-scope 'visible))
+#+end_src
+
+** General Keybindings
+A keybinding framework to set keybindings easily.
+The Leader key is what you will press when you want to access your
+keybindings (SPC + . Find file).
+To search and replace, use query-replace-regexp to replace one by one
+C-M-% (SPC to replace n to skip).
+#+begin_src emacs-lisp
+  (use-package general
+    :config
+    (general-evil-setup)
+    ;; Set up 'SPC' as the leader key
+    (general-create-definer start/leader-keys
+      :states
+      '(normal insert visual motion emacs)
+      :keymaps 'override
+      :prefix "SPC"           ;; Set leader key
+      :global-prefix "C-SPC")
+    ;; Set global leader key
+
+    (start/leader-keys
+      "." '(find-file :wk "Find file")
+      "TAB" '(comment-line :wk "Comment lines")
+      "p" '(projectile-command-map :wk "Projectile command map"))
+
+    (start/leader-keys
+      "f" '(:ignore t :wk "Find")
+      "f c"
+      '((lambda () (interactive)
+          (find-file "~/.config/emacs/config.org"))
+        :wk "Edit emacs config")
+      "f r" '(consult-recent-file :wk "Recent files")
+      "f f" '(consult-fd :wk "Fd search for files")
+      "f g" '(consult-ripgrep :wk "Ripgrep search in files")
+      "f l" '(consult-line :wk "Find line")
+      "f i" '(consult-imenu :wk "Imenu buffer locations"))
+
+    (start/leader-keys
+      "b" '(:ignore t :wk "Buffer Bookmarks")
+      "b b" '(consult-buffer :wk "Switch buffer")
+      "b k" '(kill-this-buffer :wk "Kill this buffer")
+      "b i" '(ibuffer :wk "Ibuffer")
+      "b n" '(next-buffer :wk "Next buffer")
+      "b p" '(previous-buffer :wk "Previous buffer")
+      "b r" '(revert-buffer :wk "Reload buffer")
+      "b j" '(consult-bookmark :wk "Bookmark jump"))
+    (start/leader-keys
+  	"c" '(:ignore t :wh "Code")
+  	"c f" '(format-all-buffer :wk "Format"))
+
+    (start/leader-keys
+      "d" '(:ignore t :wk "Dired")
+      "d v" '(dired :wk "Open dired")
+      "d j" '(dired-jump :wk "Dired jump to current"))
+
+    (start/leader-keys
+      "e" '(:ignore t :wk "Eglot Evaluate")
+      "e e" '(eglot-reconnect :wk "Eglot Reconnect")
+      "e f" '(eglot-format :wk "Eglot Format")
+      "e l" '(consult-flymake :wk "Consult Flymake")
+      "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
+      "e r" '(eval-region :wk "Evaluate elisp in region"))
+
+    (start/leader-keys
+      "g" '(:ignore t :wk "Git")
+      "g g" '(magit-status :wk "Magit status"))
+
+    (start/leader-keys
+      "h" '(:ignore t :wk "Help")
+      ;; To get more help use C-h commands (describe variable, function, etc.)
+      "h q" '(save-buffers-kill-emacs :wk "Quit Emacs and Daemon")
+      "h r" '((lambda () (interactive)
+                (load-file "~/.config/emacs/init.el"))
+              :wk "Reload Emacs config"))
+    
+    (start/leader-keys
+  	"n" '(:ignore t :wk "Roam")
+  	"n l" '(org-roam-buffer-toggle :wk "Roam toggle buffer")
+  	"n f" '(org-roam-node-find :wk "Roam find node")
+  	"n i" '(org-roam-node-insert :wk "Roam create node"))
+
+    (start/leader-keys
+      "s" '(:ignore t :wk "Show")
+      "s e" '(eat :wk "Eat terminal"))
+
+    (start/leader-keys
+      "t" '(:ignore t :wk "Toggle")
+      "t t" '(visual-line-mode :wk "Toggle truncated lines (wrap)")
+      "t l" '(display-line-numbers-mode :wk "Toggle line numbers")))
+#+end_src
+
+*** Which Key
+#+begin_src emacs-lisp
+  (use-package which-key
+    :init
+    (which-key-mode 1)
+    :diminish
+    :custom
+    (which-key-side-window-location 'bottom)
+    (which-key-sort-order #'which-key-key-order-alpha) ;; Same as default, except single characters are sorted alphabetically
+    (which-key-sort-uppercase-first nil)
+    (which-key-add-column-padding 1) ;; Number of spaces to add to the left of each column
+    (which-key-min-display-lines 6)  ;; Increase the minimum lines to display, because the default is only 1
+    (which-key-idle-delay 0.8)       ;; Set the time delay (in seconds) for the which-key popup to appear
+    (which-key-max-description-length 25)
+    (which-key-allow-imprecise-window-fit nil)) ;; Fixes which-key window slipping out in Emacs Daemon
+#+end_src
+
+
+** Good Defaults
+#+begin_src emacs-lisp
+  (use-package emacs
+    :custom
+    (menu-bar-mode nil)         ;; Disable the menu bar
+    (scroll-bar-mode nil)       ;; Disable the scroll bar
+    (tool-bar-mode nil)         ;; Disable the tool bar
+    ;;(inhibit-startup-screen t)  ;; Disable welcome screen
+
+    (delete-selection-mode t)   ;; Select text and delete it by typing.
+    ;; (electric-indent-mode nil)  ;; Turn off the weird indenting that Emacs does by default.
+    (electric-pair-mode t)      ;; Turns on automatic parens pairing
+
+    (blink-cursor-mode nil)     ;; Don't blink cursor
+    (global-auto-revert-mode t) ;; Automatically reload file and show changes if the file has changed
+
+    ;;(dired-kill-when-opening-new-dired-buffer t) ;; Dired don't create new buffer
+    ;;(recentf-mode t) ;; Enable recent file mode
+
+    ;;(global-visual-line-mode t)           ;; Enable truncated lines
+    (display-line-numbers-type 'relative) ;; Relative line numbers
+    (global-display-line-numbers-mode t)  ;; Display line numbers
+
+    (mouse-wheel-progressive-speed nil) ;; Disable progressive speed when scrolling
+    (scroll-conservatively 10) ;; Smooth scrolling
+    ;;(scroll-margin 8)
+
+    (tab-width 4)
+
+    (make-backup-files nil) ;; Stop creating ~ backup files
+    (auto-save-default nil) ;; Stop creating # auto save files
+    :hook
+    (prog-mode . (lambda () (hs-minor-mode t))) ;; Enable folding hide/show globally
+    :config
+    ;; Move customization variables to a separate file and load it, avoid filling up init.el with unnecessary variables
+    (setq custom-file (locate-user-emacs-file "custom-vars.el"))
+    (load custom-file 'noerror 'nomessage)
+    :bind (
+           ([escape] . keyboard-escape-quit) ;; Makes Escape quit prompts (Minibuffer Escape)
+           )
+    ;; Fix general.el leader key not working instantly in messages buffer with evil mode
+    :ghook ('after-init-hook
+            (lambda (&rest _)
+              (when-let
+                  ((messages-buffer (get-buffer "*Messages*")))
+                (with-current-buffer messages-buffer
+                  (evil-normalize-keymaps))))
+            nil nil t)
+    )
+#+end_src
+
+* Appearance
+** Set Theme
+Set gruvbox theme, if you want some themes try out doom-themes.
+Use consult-theme to easily try out themes (*Epilepsy* Warning).
+#+begin_src emacs-lisp
+    (use-package monokai-theme
+      :config
+      (load-theme 'monokai t))
+;; We need to add t to trust this package
+#+end_src
+
+** Fonts
+*** Setting fonts
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil
+                      :font "Monaspace Argon" ;; Set your favorite type of font or download JetBrains Mono
+                      :height 200
+                      :weight 'medium)
+  ;; This sets the default font on all graphical frames created after restarting Emacs.
+  ;; Does the same thing as 'set-face-attribute default' above, but emacsclient fonts
+  ;; are not right unless I also add this method of setting the default font.
+
+  ;;(add-to-list 'default-frame-alist '(font . "JetBrains Mono")) ;; Set your favorite font
+  (setq-default line-spacing 0.12)
+#+end_src
+
+# ** Modeline
+# Replace the default modeline with a prettier more useful.
+# #+begin_src emacs-lisp
+    # (use-package doom-modeline
+      # :init (doom-modeline-mode 1)
+      # :custom
+      # (doom-modeline-height 25)     ;; Sets modeline height
+      # (doom-modeline-bar-width 5)   ;; Sets right bar width
+      # (doom-modeline-persp-name t)  ;; Adds perspective name to modeline
+      # (doom-modeline-persp-icon t))
+;; Adds folder icon next to persp name
+# #+end_src
+
+* Development
+
+** Projectile
+#+begin_src emacs-lisp
+    (use-package projectile
+	:init
+	(projectile-mode)
+	:custom
+	(projectile-run-use-comint-mode t) ;; Interactive run dialog when running projects inside emacs (like giving input)
+	(projectile-switch-project-action #'projectile-dired) ;; Open dired when switching to a project
+	(projectile-project-search-path
+         '("~/projects/" "~/work/" ("~/github" . 1))))
+;; . 1 means only search the first subdirectory level for projects
+    ;; Use Bookmarks for smaller, not standard projects
+#+end_src
+
+** Eglot
+Language Server Protocol Support for Emacs. The built-in is now Eglot
+(with emacs 29).
+
+Eglot is fast and minimal, but requires manual setup for LSP servers
+(downloading).
+For more
+[[https://www.gnu.org/software/emacs/manual/html_mono/eglot.html]
+[information how to use.]]
+One alternative to Eglot is Lsp-mode, check out the
+[[https://github.com/MiniApollo/kickstart.emacs/wiki][project wiki]]
+page for more information.
+
+Eglot is easy to set up, but the only difficult part is downloading
+and setting up the lsp servers.
+After that just add a hook with eglot-ensure to automatically start
+eglot for a given file type. And you are done.
+
+As an example to use C, C++ you need to install clangd(or ccls) and
+uncomment the following lines. Now the language server will start
+automatically when opening any c,c++ file.
+
+A harder example is Lua. Download the lua-language-server from their
+git repository, make the lua-language-server file executable at
+lua-language-server/bin.
+Uncomment the following lines and change the path to the language
+server executable. Now the language server will work.
+Or add the lua-language-server executable to your path.
+
+If you can use a package manager just install the lsp server and add a
+hook.
+Use visual block to uncomment easily in Org documents (C-v).
+#+begin_src emacs-lisp
+    ;;(use-package eglot
+    ;;  :ensure nil ;; Don't install eglot because it's now built-in
+    ;;  :hook ((c-mode c++-mode ;; Autostart lsp servers for a given mode
+    ;;                 lua-mode) ;; Lua-mode needs to be installed
+    ;;         . eglot-ensure)
+    ;;  :custom
+    ;;  ;; Good default
+    ;;  (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
+    ;;  (eglot-autoshutdown t);; Shutdown unused servers.
+    ;;  (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
+    ;;  ;; Manual lsp servers
+    ;;  :config
+    ;;  (add-to-list 'eglot-server-programs
+    ;;               `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ;; Adds our lua lsp server to eglot's server list
+    ;;  )
+#+end_src
+
+** Yasnippet
+A template system for Emacs. And yasnippet-snippets is a snippet
+collection package.
+To use it write out the full keyword (or use autocompletion) and press
+Tab.
+#+begin_src emacs-lisp
+  (use-package yasnippet-snippets
+    :hook
+    (prog-mode . yas-minor-mode))
+#+end_src
+
+** Format on Save
+#+begin_src emacs-lisp
+  (use-package format-all
+    :commands format-all-mode
+    :hook (prog-mode . format-all-mode)
+    :config
+    (setq-default format-all-formatters
+                  '(("C"     (astyle "--mode=c"))
+                    ("Shell" (shfmt "-i" "4" "-ci")))))
+#+end_src
+
+** Language Modes
+
+*** Org mode
+Notes!
+#+begin_src emacs-lisp
+  (use-package org
+    :ensure
+    nil
+    :custom
+    (org-src-tab-acts-natively t)
+    (org-todo-keywords '((sequence
+  						"TODO(t)" ; doing later
+  						"NEXT(n)" ; doing now or next
+  						"|"
+  						"DONE(d)" ; complete
+  						)
+  					   (sequence
+  						"WAIT(w)" ; unable to complete
+  						"IDEA(i)" ; uncommited to it
+  						"|"
+  						"STOP(s)" ; decided to not complete
+  						)))
+    (org-todo-keyword-faces '(("TODO" . "red")
+  							("NEXT" . "yellow")
+  							("DONE" . "green")
+  							("WAIT" . "orange")
+  							("IDEA" . "purple")
+  							("STOP" . "cyan")))
+
+    :hook
+    (org-mode . org-indent-mode) ;; Indent text
+    ;; The following prevents <> from auto-pairing when electric-pair-mode is on.
+    ;; Otherwise, org-tempo is broken when you try to <s TAB...
+    (org-mode . (lambda ()
+                  (setq-local electric-pair-inhibit-predicate
+                              `(lambda (c)
+                                 (if (char-equal c ?<) t
+                                   (,electric-pair-inhibit-predicate
+                                    c))))))
+
+    )
+#+end_src
+
+**** Table of Contents
+#+begin_src  emacs-lisp
+    (use-package toc-org
+        :commands
+        toc-org-enable
+        :hook (org-mode . toc-org-mode))
+#+end_src
+
+**** Org Superstar
+#+begin_src  emacs-lisp
+    (use-package org-superstar
+        :after
+        org
+        :hook (org-mode . org-superstar-mode))
+#+end_src
+
+**** Tag Expansion
+#+begin_src emacs-lisp
+    (use-package org-tempo
+      :ensure
+      nil
+      :straight nil
+      :after org)
+#+end_src
+
+**** Org Roam
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :custom
+    (org-roam-directory "~/org-roam")
+    (org-roam-database-connector 'sqlite-builtin)
+  :config
+  (org-roam-setup))
+#+end_src
+
+* Other
+
+** Incremental completion (Helm)
+#+begin_src emacs-lisp
+  (use-package helm
+    :config
+    (helm-mode))
+#+end_src
+
+** Magit
+#+begin_src emacs-lisp
+  (use-package magit
+    :commands magit-status)
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; (use-package aggressive-indent)
+#+end_src
+
+** Color Highlighting
+#+begin_src emacs-lisp
+  (use-package rainbow-mode
+    :config
+    (rainbow-mode))
+#+end_src
