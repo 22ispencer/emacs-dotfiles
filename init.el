@@ -35,6 +35,13 @@
 (setq straight-use-package-by-default t)
 (straight-use-package 'use-package)
 
+(setq gitlab-available
+	  (condition-case
+		  nil
+		  (url-retrieve-synchronously "https://gitlab.com")
+		  (error nil)
+		))
+
 (use-package exec-path-from-shell
   :config
   (when (memq window-system '(mac ns x))
@@ -245,14 +252,15 @@
 ;;(add-to-list 'default-frame-alist '(font . "JetBrains Mono")) ;; Set your favorite font
 (setq-default line-spacing 0.12)
 
-(use-package doom-modeline
-  :init (doom-modeline-mode 1)
-  :custom
-  (doom-modeline-height 25)     ;; Sets modeline height
-  (doom-modeline-bar-width 5)   ;; Sets right bar width
-  (doom-modeline-persp-name t)  ;; Adds perspective name to modeline
-  (doom-modeline-persp-icon t))
-;; Adds folder icon next to persp name
+(if gitlab-available
+	(use-package doom-modeline
+	  :init (doom-modeline-mode 1)
+	  :custom
+	  (doom-modeline-height 25)     ;; Sets modeline height
+	  (doom-modeline-bar-width 5)   ;; Sets right bar width
+	  (doom-modeline-persp-name t)  ;; Adds perspective name to modeline
+	  (doom-modeline-persp-icon t)) ;; Adds folder icon next to persp name
+  )
 
 (use-package projectile
 	:init
@@ -363,16 +371,16 @@
 :config
 (org-roam-setup))
 
-(use-package astro-ts-mode
-  :config
-  (global-treesit-auto-mode)
-  (let ((astro-recipe (make-treesit-auto-recipe
-                       :lang 'astro
-                       :ts-mode 'astro-ts-mode
-                       :url "https://github.com/virchau13/tree-sitter-astro"
-                       :revision "master"
-                       :source-dir "src")))
-    (add-to-list 'treesit-auto-recipe-list astro-recipe)))
+;; (use-package astro-ts-mode
+;;   :config
+;;   (global-treesit-auto-mode)
+;;   (let ((astro-recipe (make-treesit-auto-recipe
+;;                        :lang 'astro
+;;                        :ts-mode 'astro-ts-mode
+;;                        :url "https://github.com/virchau13/tree-sitter-astro"
+;;                        :revision "master"
+;;                        :source-dir "src")))
+;;     (add-to-list 'treesit-auto-recipe-list astro-recipe)))
 
 (use-package magit
   :commands magit-status)
@@ -535,6 +543,7 @@
   (dashboard-set-heading-icons t)
   (dashboard-set-file-icons t)
   :config
+  (setq initial-buffer-choice (lambda () (get-buffer-create dashboard-buffer-name)))
   (dashboard-setup-startup-hook))
 
 ;; Make gc pauses faster by decreasing the threshold.

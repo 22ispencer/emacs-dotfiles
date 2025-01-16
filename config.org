@@ -9,6 +9,7 @@
   - [[#startup-performance][Startup Performance]]
   - [[#auto-tangle-configuration-file][Auto-tangle Configuration file]]
   - [[#use-package][Use Package]]
+    - [[#gitlab-check][Gitlab check]]
   - [[#inject-shell-path][Inject Shell $PATH]]
   - [[#evil-mode][Evil Mode]]
     - [[#evil-surround][Evil Surround]]
@@ -117,6 +118,18 @@ Setup straight.el as package manager
      (setq straight-use-package-by-default t)
      (straight-use-package 'use-package)
 #+end_src
+
+*** Gitlab check
+#+begin_src emacs-lisp
+  (setq gitlab-available
+  	  (condition-case
+  		  nil
+  		  (url-retrieve-synchronously "https://gitlab.com")
+  		  (error nil)
+  		))
+#+end_src
+
+#+RESULTS:
 
 ** Inject Shell $PATH
 #+begin_src emacs-lisp
@@ -380,14 +393,16 @@ Use consult-theme to easily try out themes (*Epilepsy* Warning).
 ** Modeline
 Replace the default modeline with a prettier more useful.
 #+begin_src emacs-lisp
-  (use-package doom-modeline
-    :init (doom-modeline-mode 1)
-    :custom
-    (doom-modeline-height 25)     ;; Sets modeline height
-    (doom-modeline-bar-width 5)   ;; Sets right bar width
-    (doom-modeline-persp-name t)  ;; Adds perspective name to modeline
-    (doom-modeline-persp-icon t))
-  ;; Adds folder icon next to persp name
+  (if gitlab-available
+  	(use-package doom-modeline
+  	  :init (doom-modeline-mode 1)
+  	  :custom
+  	  (doom-modeline-height 25)     ;; Sets modeline height
+  	  (doom-modeline-bar-width 5)   ;; Sets right bar width
+  	  (doom-modeline-persp-name t)  ;; Adds perspective name to modeline
+  	  (doom-modeline-persp-icon t)) ;; Adds folder icon next to persp name
+    )
+
 #+end_src
 
 * Development
@@ -574,16 +589,16 @@ Notes!
 
 *** Astro
 #+begin_src emacs-lisp
-  (use-package astro-ts-mode
-    :config
-    (global-treesit-auto-mode)
-    (let ((astro-recipe (make-treesit-auto-recipe
-                         :lang 'astro
-                         :ts-mode 'astro-ts-mode
-                         :url "https://github.com/virchau13/tree-sitter-astro"
-                         :revision "master"
-                         :source-dir "src")))
-      (add-to-list 'treesit-auto-recipe-list astro-recipe)))
+  ;; (use-package astro-ts-mode
+  ;;   :config
+  ;;   (global-treesit-auto-mode)
+  ;;   (let ((astro-recipe (make-treesit-auto-recipe
+  ;;                        :lang 'astro
+  ;;                        :ts-mode 'astro-ts-mode
+  ;;                        :url "https://github.com/virchau13/tree-sitter-astro"
+  ;;                        :revision "master"
+  ;;                        :source-dir "src")))
+  ;;     (add-to-list 'treesit-auto-recipe-list astro-recipe)))
 #+end_src
 
 * Other
@@ -784,17 +799,18 @@ Make parentheses and brackets rainbow :D
 
 ** Dashboard
 #+begin_src emacs-lisp
-    (use-package dashboard
-      :custom
-      (dashboard-startup-banner 'logo)
-      (dashboard-items '((recents . 5)
-      					 (projects . 5)))
-      (dashboard-display-icons-p t)     ; display icons on both GUI and terminal
-      (dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
-      (dashboard-set-heading-icons t)
-      (dashboard-set-file-icons t)
-      :config
-      (dashboard-setup-startup-hook))
+  (use-package dashboard
+    :custom
+    (dashboard-startup-banner 'logo)
+    (dashboard-items '((recents . 5)
+    					 (projects . 5)))
+    (dashboard-display-icons-p t)     ; display icons on both GUI and terminal
+    (dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+    (dashboard-set-heading-icons t)
+    (dashboard-set-file-icons t)
+    :config
+    (setq initial-buffer-choice (lambda () (get-buffer-create dashboard-buffer-name)))
+    (dashboard-setup-startup-hook))
 #+end_src
 
 * Reset Garbage collection
