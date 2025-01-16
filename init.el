@@ -273,18 +273,21 @@
 ;; . 1 means only search the first subdirectory level for projects
     ;; Use Bookmarks for smaller, not standard projects
 
+(straight-use-package '(project :type built-in))
+(straight-use-package '(xref :type built-in))
 (use-package eglot
- :ensure nil ;; Don't install eglot because it's now built-in
- :hook ((typescript-ts-mode) ;; Lua-mode needs to be installed
-        . eglot-ensure)
- :custom
- ;; Good default
- (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
- (eglot-autoshutdown t);; Shutdown unused servers.
- (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
- ;; Manual lsp servers
- :config
- )
+  :ensure nil ;; Don't install eglot because it's now built-in
+  :hook ((typescript-ts-mode) ;; Lua-mode needs to be installed
+         . eglot-ensure)
+  :custom
+  ;; Good default
+  (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
+  (eglot-autoshutdown t);; Shutdown unused servers.
+  (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
+  ;; Manual lsp servers
+  :config
+
+  )
 
 (use-package yasnippet-snippets
   :hook
