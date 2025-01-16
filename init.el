@@ -47,6 +47,8 @@
   (evil-want-C-i-jump nil)      ;; Disables C-i jump
   (evil-undo-system 'undo-redo) ;; C-r to redo
   (org-return-follows-link t)   ;; Sets RETURN key in org-mode to follow links
+  :hook
+  (dashboard-mode . evil-emacs-state)
   ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
   :bind (:map evil-motion-state-map
               ("SPC" . nil)
@@ -503,6 +505,18 @@
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package dashboard
+  :custom
+  (dashboard-startup-banner 'logo)
+  (dashboard-items '((recents . 5)
+  					 (projects . 5)))
+  (dashboard-display-icons-p t)     ; display icons on both GUI and terminal
+  (dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+  (dashboard-set-heading-icons t)
+  (dashboard-set-file-icons t)
+  :config
+  (dashboard-setup-startup-hook))
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))

@@ -45,6 +45,7 @@
     - [[#consult][Consult]]
   - [[#diminish][Diminish]]
   - [[#rainbow-delimeters][Rainbow Delimeters]]
+  - [[#dashboard][Dashboard]]
 - [[#reset-garbage-collection][Reset Garbage collection]]
 
 * Important to load first
@@ -123,34 +124,35 @@ Notes:
 
 If you don't want to use evil-mode don't forget to remove:
 - Messages buffer fix in Good default section (:ghook)
-- And also change general.el keybindings and setup
-(general-evil-setup, :states, etc.)
+- And also change general.el keybindings and (general-evil-setup, :states, etc.)
 #+begin_src emacs-lisp
-    (use-package evil
-      :init
-      ;; Execute code Before a package is loaded
-      (evil-mode)
-      :config ;; Execute code After a package is loaded
-      (evil-set-initial-state 'eat-mode 'insert) ;; Set initial state in eat terminal to insert mode
-      :custom ;; Customization of package custom variables
-      (evil-want-keybinding nil)    ;; Disable evil bindings in other modes (It's not consistent and not good)
-      (evil-want-C-u-scroll t)      ;; Set C-u to scroll up
-      (evil-want-C-i-jump nil)      ;; Disables C-i jump
-      (evil-undo-system 'undo-redo) ;; C-r to redo
-      (org-return-follows-link t)   ;; Sets RETURN key in org-mode to follow links
-      ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
-      :bind (:map evil-motion-state-map
-                  ("SPC" . nil)
-                  ("RET" . nil)
-                  ("TAB" . nil)))
-    (use-package evil-collection
-      :after
-      evil
-      :config
-      ;; Setting where to use evil-collection
-      (setq evil-collection-mode-list
-            '(dired ibuffer magit corfu vertico consult))
-      (evil-collection-init))
+  (use-package evil
+    :init
+    ;; Execute code Before a package is loaded
+    (evil-mode)
+    :config ;; Execute code After a package is loaded
+    (evil-set-initial-state 'eat-mode 'insert) ;; Set initial state in eat terminal to insert mode
+    :custom ;; Customization of package custom variables
+    (evil-want-keybinding nil)    ;; Disable evil bindings in other modes (It's not consistent and not good)
+    (evil-want-C-u-scroll t)      ;; Set C-u to scroll up
+    (evil-want-C-i-jump nil)      ;; Disables C-i jump
+    (evil-undo-system 'undo-redo) ;; C-r to redo
+    (org-return-follows-link t)   ;; Sets RETURN key in org-mode to follow links
+    :hook
+    (dashboard-mode . evil-emacs-state)
+    ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
+    :bind (:map evil-motion-state-map
+                ("SPC" . nil)
+                ("RET" . nil)
+                ("TAB" . nil)))
+  (use-package evil-collection
+    :after
+    evil
+    :config
+    ;; Setting where to use evil-collection
+    (setq evil-collection-mode-list
+          '(dired ibuffer magit corfu vertico consult))
+    (evil-collection-init))
 #+end_src
 
 *** Evil Surround
@@ -747,6 +749,21 @@ Make parentheses and brackets rainbow :D
 #+begin_src emacs-lisp
   (use-package rainbow-delimiters
     :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+** Dashboard
+#+begin_src emacs-lisp
+    (use-package dashboard
+      :custom
+      (dashboard-startup-banner 'logo)
+      (dashboard-items '((recents . 5)
+      					 (projects . 5)))
+      (dashboard-display-icons-p t)     ; display icons on both GUI and terminal
+      (dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+      (dashboard-set-heading-icons t)
+      (dashboard-set-file-icons t)
+      :config
+      (dashboard-setup-startup-hook))
 #+end_src
 
 * Reset Garbage collection
