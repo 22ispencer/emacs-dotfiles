@@ -35,6 +35,11 @@
 (setq straight-use-package-by-default t)
 (straight-use-package 'use-package)
 
+(use-package exec-path-from-shell
+  :config
+  (when (memq window-system '(mac ns x))
+	(exec-path-from-shell-initialize)))
+
 (use-package evil
   :init
   ;; Execute code Before a package is loaded
@@ -260,21 +265,18 @@
 ;; . 1 means only search the first subdirectory level for projects
     ;; Use Bookmarks for smaller, not standard projects
 
-;;(use-package eglot
-;;  :ensure nil ;; Don't install eglot because it's now built-in
-;;  :hook ((c-mode c++-mode ;; Autostart lsp servers for a given mode
-;;                 lua-mode) ;; Lua-mode needs to be installed
-;;         . eglot-ensure)
-;;  :custom
-;;  ;; Good default
-;;  (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
-;;  (eglot-autoshutdown t);; Shutdown unused servers.
-;;  (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
-;;  ;; Manual lsp servers
-;;  :config
-;;  (add-to-list 'eglot-server-programs
-;;               `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ;; Adds our lua lsp server to eglot's server list
-;;  )
+(use-package eglot
+ :ensure nil ;; Don't install eglot because it's now built-in
+ :hook ((typescript-ts-mode) ;; Lua-mode needs to be installed
+        . eglot-ensure)
+ :custom
+ ;; Good default
+ (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
+ (eglot-autoshutdown t);; Shutdown unused servers.
+ (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
+ ;; Manual lsp servers
+ :config
+ )
 
 (use-package yasnippet-snippets
   :hook
@@ -288,9 +290,15 @@
                 '(("C"     (astyle "--mode=c"))
                   ("Shell" (shfmt "-i" "4" "-ci")))))
 
+
+
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
+  (treesit-language-source-alist
+		'((astro "https://github.com/virchau13/tree-sitter-astro")
+          (css "https://github.com/tree-sitter/tree-sitter-css")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")))
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
@@ -354,6 +362,17 @@
   (org-roam-database-connector 'sqlite-builtin)
 :config
 (org-roam-setup))
+
+(use-package astro-ts-mode
+  :config
+  (global-treesit-auto-mode)
+  (let ((astro-recipe (make-treesit-auto-recipe
+                       :lang 'astro
+                       :ts-mode 'astro-ts-mode
+                       :url "https://github.com/virchau13/tree-sitter-astro"
+                       :revision "master"
+                       :source-dir "src")))
+    (add-to-list 'treesit-auto-recipe-list astro-recipe)))
 
 (use-package magit
   :commands magit-status)

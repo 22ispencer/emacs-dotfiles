@@ -9,6 +9,7 @@
   - [[#startup-performance][Startup Performance]]
   - [[#auto-tangle-configuration-file][Auto-tangle Configuration file]]
   - [[#use-package][Use Package]]
+  - [[#inject-shell-path][Inject Shell $PATH]]
   - [[#evil-mode][Evil Mode]]
     - [[#evil-surround][Evil Surround]]
     - [[#evil-commentary][Evil Commentary]]
@@ -27,12 +28,14 @@
   - [[#yasnippet][Yasnippet]]
   - [[#format-on-save][Format on Save]]
   - [[#language-modes][Language Modes]]
+    - [[#eglot-1][Eglot]]
     - [[#treesitter][Treesitter]]
     - [[#org-mode][Org mode]]
       - [[#table-of-contents][Table of Contents]]
       - [[#org-superstar][Org Superstar]]
       - [[#tag-expansion][Tag Expansion]]
       - [[#org-roam][Org Roam]]
+    - [[#astro][Astro]]
 - [[#other][Other]]
   - [[#magit][Magit]]
   - [[#color-highlighting][Color Highlighting]]
@@ -113,6 +116,14 @@ Setup straight.el as package manager
      ; Setup use-package
      (setq straight-use-package-by-default t)
      (straight-use-package 'use-package)
+#+end_src
+
+** Inject Shell $PATH
+#+begin_src emacs-lisp
+  (use-package exec-path-from-shell
+    :config
+    (when (memq window-system '(mac ns x))
+  	(exec-path-from-shell-initialize)))
 #+end_src
 
 ** Evil Mode
@@ -428,21 +439,18 @@ If you can use a package manager just install the lsp server and add a
 hook.
 Use visual block to uncomment easily in Org documents (C-v).
 #+begin_src emacs-lisp
-    ;;(use-package eglot
-    ;;  :ensure nil ;; Don't install eglot because it's now built-in
-    ;;  :hook ((c-mode c++-mode ;; Autostart lsp servers for a given mode
-    ;;                 lua-mode) ;; Lua-mode needs to be installed
-    ;;         . eglot-ensure)
-    ;;  :custom
-    ;;  ;; Good default
-    ;;  (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
-    ;;  (eglot-autoshutdown t);; Shutdown unused servers.
-    ;;  (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
-    ;;  ;; Manual lsp servers
-    ;;  :config
-    ;;  (add-to-list 'eglot-server-programs
-    ;;               `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ;; Adds our lua lsp server to eglot's server list
-    ;;  )
+  (use-package eglot
+   :ensure nil ;; Don't install eglot because it's now built-in
+   :hook ((typescript-ts-mode) ;; Lua-mode needs to be installed
+          . eglot-ensure)
+   :custom
+   ;; Good default
+   (eglot-events-buffer-size 0) ;; No event buffers (Lsp server logs)
+   (eglot-autoshutdown t);; Shutdown unused servers.
+   (eglot-report-progress nil) ;; Disable lsp server logs (Don't show lsp messages at the bottom, java)
+   ;; Manual lsp servers
+   :config
+   )
 #+end_src
 
 ** Yasnippet
@@ -469,11 +477,20 @@ Tab.
 
 ** Language Modes
 
+*** Eglot
+#+begin_src emacs-lisp
+
+#+end_src
+
 *** Treesitter
 #+begin_src emacs-lisp
   (use-package treesit-auto
     :custom
     (treesit-auto-install 'prompt)
+    (treesit-language-source-alist
+  		'((astro "https://github.com/virchau13/tree-sitter-astro")
+            (css "https://github.com/tree-sitter/tree-sitter-css")
+            (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")))
     :config
     (treesit-auto-add-to-auto-mode-alist 'all)
     (global-treesit-auto-mode))
@@ -553,6 +570,20 @@ Notes!
     (org-roam-database-connector 'sqlite-builtin)
   :config
   (org-roam-setup))
+#+end_src
+
+*** Astro
+#+begin_src emacs-lisp
+  (use-package astro-ts-mode
+    :config
+    (global-treesit-auto-mode)
+    (let ((astro-recipe (make-treesit-auto-recipe
+                         :lang 'astro
+                         :ts-mode 'astro-ts-mode
+                         :url "https://github.com/virchau13/tree-sitter-astro"
+                         :revision "master"
+                         :source-dir "src")))
+      (add-to-list 'treesit-auto-recipe-list astro-recipe)))
 #+end_src
 
 * Other
