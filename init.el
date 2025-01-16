@@ -196,6 +196,9 @@
   (scroll-conservatively 10) ;; Smooth scrolling
   ;;(scroll-margin 8)
 
+  ;; Emacs-plus allow pixelwise window size (macos)
+  (frame-resize-pixelwise t)
+
   (tab-width 4)
 
   (make-backup-files nil) ;; Stop creating ~ backup files
